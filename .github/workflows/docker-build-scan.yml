@@ -1,26 +1,28 @@
-name: Build and Scan Container
+name: Build and Scan
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
 
 jobs:
   build-and-scan:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-    - name: Set up Docker
-      uses: docker/setup-buildx-action@v3
+      - name: Build Docker Image
+        run: docker build -t cloud-native-app .
 
-    - name: Build Docker image
-      run: docker build -t cloud-native-app .
+      - name: Install Trivy
+        run: |
+          sudo apt update
+          sudo apt install wget apt-transport-https gnupg lsb-release -y
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo gpg --dearmor -o /usr/share/keyrings/trivy.gpg
+          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
+          sudo apt update
+          sudo apt install trivy -y
 
-    - name: Install Trivy
-      run: |
-        curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh
-
-    - name: Scan Docker image with Trivy
-      run: ./trivy image cloud-native-app
+      - name: Scan Docker Image
+        run: trivy image cloud-native-app
