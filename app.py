@@ -14,7 +14,7 @@ def home():
     html = f"""
     <html>
         <head>
-            <title>Cloud Native App</title>
+            <title>Cloud Native App!</title>
             <style>
                 body {{
                     font-family: Arial, sans-serif;
