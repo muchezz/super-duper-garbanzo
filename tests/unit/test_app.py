@@ -9,4 +9,4 @@ def test_home():
 
     # Check if the response data is correct
     assert response.status_code == 200
-    assert response.data.decode("utf-8") == "Hello from DevOps Demo!"
+    assert "<title>Cloud Native App</title>" in response.data.decode("utf-8")
