@@ -106,7 +106,7 @@ jobs:
 
       # Step 2: Run Gitleaks to detect secrets
       - name: Run Gitleaks Secret Detection
-        run: gitleaks detect --path . --verbose --redact
+        run: gitleaks detect --source-path=. --verbose
 
   checkov-iac-scan:
     runs-on: ubuntu-latest
