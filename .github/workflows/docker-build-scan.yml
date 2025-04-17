@@ -7,7 +7,7 @@ stages:
 
 variables:
   DOCKER_IMAGE: "cloud-native-app:latest"
-  # Define any other necessary variables here, like GitLab token or registry login credentials if needed
+  # Define other variables here if necessary, like registry credentials
 
 # Stage 1: Build Docker Image
 build:
@@ -17,8 +17,6 @@ build:
   artifacts:
     paths:
       - $DOCKER_IMAGE
-  only:
-    - main  # or master if you prefer
 
 # Stage 2: Docker Image Scan (Trivy)
 trivy-scan:
@@ -26,7 +24,7 @@ trivy-scan:
   image: aquasec/trivy:latest
   script:
     - trivy image --exit-code 1 --severity HIGH,CRITICAL $DOCKER_IMAGE
-  allow_failure: false  # If you want the pipeline to fail if security issues are found
+  allow_failure: false
   only:
     - main
 
@@ -62,15 +60,5 @@ checkov:
   script:
     - checkov -d . --compact
   allow_failure: false
-  only:
-    - main
-
-# Optional: GitLab Notifications (Example)
-# Notify on failure (you can use Slack, email, or GitLab notifications)
-notify_failure:
-  stage: deploy
-  script:
-    - echo "Security issues found! Check the pipeline report."
-  when: on_failure
   only:
     - main
