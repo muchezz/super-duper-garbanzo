@@ -1,64 +1,90 @@
-stages:
-  - build
-  - scan
-  - sast
-  - secret-scan
-  - iac-scan
+name: Build and DevSecOps Scan
 
-variables:
-  DOCKER_IMAGE: "cloud-native-app:latest"
-  # Define other variables here if necessary, like registry credentials
+on:
+  push:
+    branches:
+      - main
 
-# Stage 1: Build Docker Image
-build:
-  stage: build
-  script:
-    - docker build -t $DOCKER_IMAGE .
-  artifacts:
-    paths:
-      - $DOCKER_IMAGE
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Checkout Code from the repository
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-# Stage 2: Docker Image Scan (Trivy)
-trivy-scan:
-  stage: scan
-  image: aquasec/trivy:latest
-  script:
-    - trivy image --exit-code 1 --severity HIGH,CRITICAL $DOCKER_IMAGE
-  allow_failure: false
-  only:
-    - main
+      # Step 2: Build Docker image
+      - name: Build Docker Image
+        run: docker build -t cloud-native-app .
 
-# Stage 3: Python SAST (Bandit)
-bandit-sast:
-  stage: sast
-  image: python:3.9
-  before_script:
-    - pip install bandit
-  script:
-    - bandit -r app.py -f json -o bandit-report.json
-  artifacts:
-    paths:
-      - bandit-report.json
-  allow_failure: false
-  only:
-    - main
+  trivy-scan:
+    runs-on: ubuntu-latest
+    needs: build  # Run after the build job completes
+    steps:
+      # Step 1: Install Trivy for image scanning
+      - name: Install Trivy
+        run: |
+          sudo apt update
+          sudo apt install wget apt-transport-https gnupg lsb-release -y
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo gpg --dearmor -o /usr/share/keyrings/trivy.gpg
+          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
+          sudo apt update
+          sudo apt install trivy -y
 
-# Stage 4: Secret Detection (Gitleaks)
-gitleaks:
-  stage: secret-scan
-  image: zricethezav/gitleaks:latest
-  script:
-    - gitleaks detect --source . --verbose --redact
-  allow_failure: false
-  only:
-    - main
+      # Step 2: Scan Docker Image with Trivy
+      - name: Scan Docker Image
+        run: trivy image --severity CRITICAL,HIGH cloud-native-app
 
-# Stage 5: IaC Scan (Checkov)
-checkov:
-  stage: iac-scan
-  image: bridgecrew/checkov:latest
-  script:
-    - checkov -d . --compact
-  allow_failure: false
-  only:
-    - main
+  bandit-sast:
+    runs-on: ubuntu-latest
+    needs: build  # Run after the build job completes
+    steps:
+      # Step 1: Install Bandit (Python SAST Tool)
+      - name: Install Bandit
+        run: pip install bandit
+
+      # Step 2: Run Bandit on app.py for Static Code Analysis
+      - name: Run Bandit SAST
+        run: bandit -r app.py -f json -o bandit-report.json
+
+      # Step 3: Upload Bandit report as an artifact
+      - name: Upload Bandit report
+        uses: actions/upload-artifact@v3
+        with:
+          name: bandit-report
+          path: bandit-report.json
+
+  gitleaks-secret-scan:
+    runs-on: ubuntu-latest
+    needs: build  # Run after the build job completes
+    steps:
+      # Step 1: Install Gitleaks for secret scanning
+      - name: Install Gitleaks
+        run: |
+          wget https://github.com/zricethezav/gitleaks/releases/download/v7.5.0/gitleaks-linux-amd64 -O /usr/local/bin/gitleaks
+          chmod +x /usr/local/bin/gitleaks
+
+      # Step 2: Run Gitleaks to detect secrets
+      - name: Run Gitleaks Secret Detection
+        run: gitleaks detect --source . --verbose --redact
+
+  checkov-iac-scan:
+    runs-on: ubuntu-latest
+    needs: build  # Run after the build job completes
+    steps:
+      # Step 1: Install Checkov for Infrastructure as Code scanning
+      - name: Install Checkov
+        run: |
+          pip install checkov
+
+      # Step 2: Run Checkov on IaC files (e.g., Dockerfile, Kubernetes configurations)
+      - name: Run Checkov IaC scan
+        run: checkov -d . --compact
+
+  notify_failure:
+    runs-on: ubuntu-latest
+    if: failure()  # Only run if the previous jobs fail
+    steps:
+      # Step 1: Notify failure (you can replace this with an actual notification integration like Slack)
+      - name: Notify failure
+        run: echo "Security issues found! Check the pipeline report."
