@@ -14,3 +14,115 @@ jobs:
 
       - name: Build Docker Image
         run: docker build -t cloud-native-app .
+
+      - name: Save Docker Image to tar
+        run: docker save cloud-native-app -o cloud-native-app.tar
+
+      - name: Upload image tarball as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloud-native-app-image
+          path: cloud-native-app.tar
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cloud-native-app-image
+          path: .
+
+      - name: Load Docker image
+        run: docker load -i cloud-native-app.tar
+
+      - name: Run Unit Tests
+        run: docker run --rm -e PYTHONPATH=/app cloud-native-app pytest tests/unit
+
+  trivy-scan:
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    steps:
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cloud-native-app-image
+          path: .
+
+      - name: Load Docker image
+        run: docker load -i cloud-native-app.tar
+
+      - name: Install Trivy
+        run: |
+          sudo apt update
+          sudo apt install wget apt-transport-https gnupg lsb-release -y
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo gpg --dearmor -o /usr/share/keyrings/trivy.gpg
+          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
+          sudo apt update
+          sudo apt install trivy -y
+
+      - name: Scan Docker Image
+        run: trivy image --severity CRITICAL,HIGH cloud-native-app
+
+      - name: Save Trivy report
+        run: trivy image --format json --output trivy-report.json cloud-native-app
+      - name: Upload Trivy report as an artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-report  
+          path: trivy-report.json
+
+
+  bandit-sast:
+    runs-on: ubuntu-latest
+    needs: trivy-scan  # Run after the build job completes
+    steps:
+      # Step 1: Install Bandit (Python SAST Tool)
+      - name: Install Bandit
+        run: pip install bandit
+
+      # Step 2: Run Bandit on app.py for Static Code Analysis
+      - name: Run Bandit SAST
+        run: bandit -r ./app.py -f json -o bandit-report.json
+
+      # Step 3: Upload Bandit report as an artifact
+      - name: Upload Bandit report
+        uses: actions/upload-artifact@v4
+
+        with:
+          name: bandit-report
+          path: bandit-report.json
+
+  checkov-iac-scan:
+    runs-on: ubuntu-latest
+    needs: [bandit-sast]  # Run after the build job completes
+    steps:
+        # Step 0: Check out the repository contents
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # Step 1: Install Checkov for Infrastructure as Code scanning
+      - name: Install Checkov
+        run: |
+          pip install checkov
+
+      # Step 2: Run Checkov on IaC files (e.g., Dockerfile, Kubernetes configurations)
+      - name: Run Checkov IaC scan
+        run: checkov -f Dockerfile --compact --output json --output-file checkov-report.json
+
+      # Step 3: Upload Checkov report as an artifact
+      - name: Upload Checkov report
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkov-report
+          path: checkov-report.json
+
+  notify_failure:
+    runs-on: ubuntu-latest
+    if: failure()  # Only run if the previous jobs fail
+    steps:
+      # Step 1: Notify failure (you can replace this with an actual notification integration like Slack)
+      - name: Notify failure
+        run: echo "Security issues found! Check the pipeline report."
+
