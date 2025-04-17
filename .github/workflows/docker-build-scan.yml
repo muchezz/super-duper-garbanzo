@@ -98,6 +98,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: [bandit-sast]  # Run after the build job completes
     steps:
+        # Step 0: Check out the repository contents
+      - name: Check out repository
+        uses: actions/checkout@v4
+
       # Step 1: Install Checkov for Infrastructure as Code scanning
       - name: Install Checkov
         run: |
