@@ -33,7 +33,7 @@ jobs:
 
       # Step 2: Scan Docker Image with Trivy
       - name: Scan Docker Image
-        run: trivy image --severity CRITICAL,HIGH cloud-native-app 
+        run: trivy image cloud-native-app 
 
   bandit-sast:
     runs-on: ubuntu-latest
