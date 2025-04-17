@@ -3,7 +3,7 @@ name: Build and DevSecOps Scan
 on:
   push:
     branches:
-      - devsecops
+      - main
 
 jobs:
   build:

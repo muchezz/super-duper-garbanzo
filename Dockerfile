@@ -12,9 +12,12 @@ RUN pip install flask pytest
 # Switch to non-root user
 USER appuser
 
-# Add a health check to verify the app is running
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:5000/ || exit 1
+
+#Uncomment this
+
+# # Add a health check to verify the app is running
+# HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+#   CMD curl -f http://localhost:5000/ || exit 1
 
 # Expose the application port
 EXPOSE 5000
