@@ -34,7 +34,7 @@ def home():
         </head>
         <body>
             <div class="box">
-                <h1>Hello from Cloud Native App! 🌥️</h1>
+                <h1>Hello from DevSecOps!</h1>
                 <p><strong>Hostname:</strong> {hostname}</p>
                 <p><strong>Your IP:</strong> {client_ip}</p>
                 <p><strong>Time:</strong> {current_time}</p>
