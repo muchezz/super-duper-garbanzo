@@ -1,4 +1,4 @@
-name: Build and DevSecOps Scan
+name: Build and Scan
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  build:
+  build-and-scan:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -125,3 +125,4 @@ jobs:
       # Step 1: Notify failure (you can replace this with an actual notification integration like Slack)
       - name: Notify failure
         run: echo "Security issues found! Check the pipeline report."
+
