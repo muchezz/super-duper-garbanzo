@@ -3,7 +3,7 @@ name: Build and DevSecOps Scan
 on:
   push:
     branches:
-      - main
+      - devsecops
 
 jobs:
   build:
@@ -84,7 +84,7 @@ jobs:
 
       # Step 2: Run Bandit on app.py for Static Code Analysis
       - name: Run Bandit SAST
-        run: bandit -r /app/app.py -f json -o bandit-report.json
+        run: bandit -r ./app.py -f json -o bandit-report.json
 
       # Step 3: Upload Bandit report as an artifact
       - name: Upload Bandit report
