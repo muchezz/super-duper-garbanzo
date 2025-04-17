@@ -1,17 +1,23 @@
 FROM python:3.9-slim
 
+# Create a non-root user to run the application
+RUN adduser --disabled-password --gecos "" appuser
+
 WORKDIR /app
 COPY . /app
 
-RUN pip install flask
-RUN pip install pytest
+# Install dependencies
+RUN pip install flask pytest
 
-# 👇 Intentionally hardcoded env vars (to be caught by scanners like Trivy)
-ENV ENV=production
-ENV VERSION=2.3.1
-ENV SECRET_KEY=supersecretkey123
-ENV API_TOKEN=ghp_ThisIsADemoTokenToTriggerWarning
+# Switch to non-root user
+USER appuser
 
+# Add a health check to verify the app is running
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:5000/ || exit 1
+
+# Expose the application port
 EXPOSE 5000
 
+# Run the application
 CMD ["python", "app.py"]
