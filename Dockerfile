@@ -4,6 +4,7 @@ WORKDIR /app
 COPY . /app
 
 RUN pip install flask
+RUN pip install pytest
 
 # 👇 Intentionally hardcoded env vars (to be caught by scanners like Trivy)
 ENV ENV=production
