@@ -1,28 +1,76 @@
-name: Build and Scan
+stages:
+  - build
+  - scan
+  - sast
+  - secret-scan
+  - iac-scan
 
-on:
-  push:
-    branches:
-      - main
+variables:
+  DOCKER_IMAGE: "cloud-native-app:latest"
+  # Define any other necessary variables here, like GitLab token or registry login credentials if needed
 
-jobs:
-  build-and-scan:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+# Stage 1: Build Docker Image
+build:
+  stage: build
+  script:
+    - docker build -t $DOCKER_IMAGE .
+  artifacts:
+    paths:
+      - $DOCKER_IMAGE
+  only:
+    - main  # or master if you prefer
 
-      - name: Build Docker Image
-        run: docker build -t cloud-native-app .
+# Stage 2: Docker Image Scan (Trivy)
+trivy-scan:
+  stage: scan
+  image: aquasec/trivy:latest
+  script:
+    - trivy image --exit-code 1 --severity HIGH,CRITICAL $DOCKER_IMAGE
+  allow_failure: false  # If you want the pipeline to fail if security issues are found
+  only:
+    - main
 
-      - name: Install Trivy
-        run: |
-          sudo apt update
-          sudo apt install wget apt-transport-https gnupg lsb-release -y
-          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo gpg --dearmor -o /usr/share/keyrings/trivy.gpg
-          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
-          sudo apt update
-          sudo apt install trivy -y
+# Stage 3: Python SAST (Bandit)
+bandit-sast:
+  stage: sast
+  image: python:3.9
+  before_script:
+    - pip install bandit
+  script:
+    - bandit -r app.py -f json -o bandit-report.json
+  artifacts:
+    paths:
+      - bandit-report.json
+  allow_failure: false
+  only:
+    - main
 
-      - name: Scan Docker Image
-        run: trivy image cloud-native-app
+# Stage 4: Secret Detection (Gitleaks)
+gitleaks:
+  stage: secret-scan
+  image: zricethezav/gitleaks:latest
+  script:
+    - gitleaks detect --source . --verbose --redact
+  allow_failure: false
+  only:
+    - main
+
+# Stage 5: IaC Scan (Checkov)
+checkov:
+  stage: iac-scan
+  image: bridgecrew/checkov:latest
+  script:
+    - checkov -d . --compact
+  allow_failure: false
+  only:
+    - main
+
+# Optional: GitLab Notifications (Example)
+# Notify on failure (you can use Slack, email, or GitLab notifications)
+notify_failure:
+  stage: deploy
+  script:
+    - echo "Security issues found! Check the pipeline report."
+  when: on_failure
+  only:
+    - main
