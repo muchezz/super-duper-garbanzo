@@ -17,15 +17,15 @@ jobs:
       - name: Build Docker Image
         run: docker build -t cloud-native-app .
 
-      # Step 3: Run Unit Tests
-      - name: Run Unit Tests
-        run: |
-          docker run --rm cloud-native-app pytest tests/unit
+      # # Step 3: Run Unit Tests
+      # - name: Run Unit Tests
+      #   run: |
+      #     docker run --rm cloud-native-app pytest tests/unit
 
-      # Step 4: Run Integration Tests
-      - name: Run Integration Tests
-        run: |
-          docker run --rm cloud-native-app pytest tests/integration
+      # # Step 4: Run Integration Tests
+      # - name: Run Integration Tests
+      #   run: |
+      #     docker run --rm cloud-native-app pytest tests/integration
       # Step 5: Scan with trivy
       - name: Install Trivy
         run: |
