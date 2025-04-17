@@ -42,7 +42,7 @@ jobs:
 
   trivy-scan:
     runs-on: ubuntu-latest
-    needs: build
+    needs: unit-tests
     steps:
       - name: Download Docker image artifact
         uses: actions/download-artifact@v4
@@ -68,7 +68,7 @@ jobs:
 
   bandit-sast:
     runs-on: ubuntu-latest
-    needs: build  # Run after the build job completes
+    needs: trivy-scan  # Run after the build job completes
     steps:
       # Step 1: Install Bandit (Python SAST Tool)
       - name: Install Bandit
@@ -88,7 +88,7 @@ jobs:
 
   gitleaks-secret-scan:
     runs-on: ubuntu-latest
-    needs: build  # Run after the build job completes
+    needs: trivy-scan # Run after the build job completes
     steps:
       # Step 1: Install Gitleaks for secret scanning
       - name: Install Gitleaks
@@ -102,7 +102,7 @@ jobs:
 
   checkov-iac-scan:
     runs-on: ubuntu-latest
-    needs: build  # Run after the build job completes
+    needs: [gitleaks-secret-scan, bandit-sast]  # Run after the build job completes
     steps:
       # Step 1: Install Checkov for Infrastructure as Code scanning
       - name: Install Checkov
