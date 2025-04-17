@@ -38,7 +38,7 @@ jobs:
         run: docker load -i cloud-native-app.tar
 
       - name: Run Unit Tests
-        run: docker run --rm cloud-native-app pytest tests/unit
+        run: docker run --rm -e PYTHONPATH=/app cloud-native-app pytest tests/unit
 
   trivy-scan:
     runs-on: ubuntu-latest
