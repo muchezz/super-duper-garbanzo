@@ -52,5 +52,11 @@ def home():
 # 👇 Security issue for Bandit to catch
 eval("print('This is unsafe')")
 
+
+# 👇 Security issue for gitleaks-secret-scan to catch
+API_KEY = "sk_live_51HV2tpHKZSwXkNth41HAKa2HF922o2eSSwUZYPm"
+GITHUB_TOKEN = "ghp_aBcDeFgHiJkLmNoPqRsTuVwXyZ1234567890"
+AWS_SECRET_ACCESS_KEY = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)

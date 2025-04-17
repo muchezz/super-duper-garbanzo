@@ -65,6 +65,14 @@ jobs:
       - name: Scan Docker Image
         run: trivy image --severity CRITICAL,HIGH cloud-native-app
 
+      - name: Save Trivy report
+        run: trivy image --format json --output trivy-report.json cloud-native-app
+      - name: Upload Trivy report as an artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-report  
+          path: trivy-report.json
+
 
   bandit-sast:
     runs-on: ubuntu-latest
@@ -76,7 +84,7 @@ jobs:
 
       # Step 2: Run Bandit on app.py for Static Code Analysis
       - name: Run Bandit SAST
-        run: bandit -r app.py -f json -o bandit-report.json
+        run: bandit -r /app/app.py -f json -o bandit-report.json
 
       # Step 3: Upload Bandit report as an artifact
       - name: Upload Bandit report
@@ -112,6 +120,13 @@ jobs:
       # Step 2: Run Checkov on IaC files (e.g., Dockerfile, Kubernetes configurations)
       - name: Run Checkov IaC scan
         run: checkov -d . --compact
+
+      # Step 3: Upload Checkov report as an artifact
+      - name: Upload Checkov report
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkov-report
+          path: checkov-report.json
 
   notify_failure:
     runs-on: ubuntu-latest
